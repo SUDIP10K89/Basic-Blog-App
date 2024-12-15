@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const router = express.Router();
-const JWT_SECRET = 'your_jwt_secret_key'; // Use the same key from authRoutes.js
+const JWT_SECRET = 'Sudip10k89'; // Use the same key from authRoutes.js
 
 // Middleware to verify token
 const verifyToken = (req, res, next) => {
@@ -83,7 +83,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    await post.remove();
+    await post.deleteOne();
     res.status(200).json({ message: 'Post deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
