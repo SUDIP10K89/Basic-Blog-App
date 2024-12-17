@@ -4,6 +4,8 @@ import Home from "./components/Home"
 import Login from "./components/Login"
 import Register from "./components/Register"
 import AddPost from "./pages/AddPost"
+import EditBlog from "./pages/EditBlog"
+import ShowFullBlog from "./pages/ShowFullBlog"
 
 
 function App(){
@@ -16,6 +18,9 @@ function App(){
           <Route path="/login" element={<Login/>} />
           <Route path="/register" element={<Register/>} />
           <Route path="/add-post" element={<AddPost/>} />
+          <Route path="/edit/:id" element={<EditBlog/>} />
+          <Route path="/show/:id" element={<ShowFullBlog/>} />
+          
         </Routes>
       </Router>
     </div>

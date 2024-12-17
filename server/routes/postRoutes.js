@@ -71,6 +71,23 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+//--->Get Post for update purpose
+router.get("/:id",verifyToken,async (req,res)=>{
+  try {
+    const {id} = req.params;
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Blog post not found' });
+    }
+    res.status(200).json(post);
+  } catch (error) {
+    console.error('Error fetching post:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+
+
+})
+
 // Delete a post
 router.delete('/:id', verifyToken, async (req, res) => {
   const { id } = req.params;

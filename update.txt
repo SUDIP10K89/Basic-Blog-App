@@ -1,0 +1,7 @@
+Add these;
+
+Nice homepage
+logout Feature
+mongodb atlas from local
+User Experience
+
