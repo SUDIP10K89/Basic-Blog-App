@@ -40,15 +40,26 @@ function Home() {
       setError("Failed to delete blog");
     }
   };
+  //Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate('/login');
+  };
 
   return (
     <div className="bg-gray-700 min-h-screen text-white flex flex-col items-center py-8">
+      <button
+        onClick={handleLogout}
+        className="bg-gray-900 text-gray-300 px-4 py-2 rounded hover:bg-gray-600"
+      >
+        Logout
+      </button>
       <h1 className="text-4xl font-bold mb-8">Blog Posts</h1>
       {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blogs.map((blog) => (
           <div key={blog._id} className="bg-gray-800 p-6 rounded-lg shadow-md">
-            <div  onClick={() => handleShowFull(blog._id)}>
+            <div onClick={() => handleShowFull(blog._id)}>
               <p className="text-xl font-semibold mb-2">{blog.title}</p>
               <p className="text-gray-300 mb-2 h-40">
                 {blog.content.substring(0, 100)}...

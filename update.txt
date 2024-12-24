@@ -1,7 +1,6 @@
 Add these;
 
 Nice homepage
-logout Feature
+add my blog section where Usercan see only their post
 mongodb atlas from local
 User Experience
-
