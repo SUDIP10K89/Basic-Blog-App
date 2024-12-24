@@ -1,7 +1,14 @@
-import React from 'react';
+import React,{useState} from 'react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
 
 function Navbar() {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate('/login');
+  }
   return (
     <nav className="bg-gray-800 p-4 text-white">
       <div className="container mx-auto flex justify-between items-center">
@@ -17,6 +24,16 @@ function Navbar() {
           </li>
           <li>
             <Link 
+              to="/add-post" 
+              className="hover:text-gray-300 transition duration-300 ease-in-out"
+            >
+              Create
+            </Link>
+          </li>
+
+          
+          <li>
+            <Link 
               to="/login" 
               className="hover:text-gray-300 transition duration-300 ease-in-out"
             >
@@ -24,21 +41,14 @@ function Navbar() {
             </Link>
           </li>
           <li>
-            <Link 
-              to="/register" 
+            <button 
+              onClick={handleLogout}
               className="hover:text-gray-300 transition duration-300 ease-in-out"
             >
-              Register
-            </Link>
+              Logout
+            </button>
           </li>
-          <li>
-            <Link 
-              to="/add-post" 
-              className="hover:text-gray-300 transition duration-300 ease-in-out"
-            >
-              Create
-            </Link>
-          </li>
+          
         </ul>
       </div>
     </nav>

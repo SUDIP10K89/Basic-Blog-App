@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+
 function Home() {
   const [blogs, setBlogs] = useState([]);
   const [error, setError] = useState("");
@@ -41,19 +42,19 @@ function Home() {
     }
   };
   //Logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate('/login');
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem("token");
+  //   navigate('/login');
+  // };
 
   return (
     <div className="bg-gray-700 min-h-screen text-white flex flex-col items-center py-8">
-      <button
+      {/* <button
         onClick={handleLogout}
         className="bg-gray-900 text-gray-300 px-4 py-2 rounded hover:bg-gray-600"
       >
         Logout
-      </button>
+      </button> */}
       <h1 className="text-4xl font-bold mb-8">Blog Posts</h1>
       {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

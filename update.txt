@@ -1,6 +1,7 @@
 Add these;
 
 Nice homepage
+register in login
 add my blog section where Usercan see only their post
 mongodb atlas from local
 User Experience
