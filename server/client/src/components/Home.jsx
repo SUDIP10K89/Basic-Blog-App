@@ -55,7 +55,7 @@ function Home() {
       >
         Logout
       </button> */}
-      <h1 className="text-4xl font-bold mb-8">Blog Posts</h1>
+      <h1 className="text-4xl font-bold mb-8">Blog 3 Posts</h1>
       {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blogs.map((blog) => (
