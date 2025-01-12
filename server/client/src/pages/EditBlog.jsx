@@ -16,7 +16,7 @@ function EditBlog() {
     const fetchBlog = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/api/posts/${id}`, {
+        const response = await axios.get(`https://blog-app-4j8r.onrender.com/api/posts/${id}`, {
           headers: { Authorization: `${token}` },
         });
         setTitle(response.data.title);

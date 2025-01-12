@@ -11,7 +11,7 @@ function AddPost() {
     const token = localStorage.getItem("token");
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/posts",
+        "https://blog-app-4j8r.onrender.com/api/posts",
         {
           title,
           content,

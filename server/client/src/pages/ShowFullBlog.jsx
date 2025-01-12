@@ -17,7 +17,7 @@ function ShowFullBlog() {
       setLoading(true);
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/posts/${id}`,
+          `https://blog-app-4j8r.onrender.com/api/posts/${id}`,
           {
             headers: { Authorization: `${token}` },
           }

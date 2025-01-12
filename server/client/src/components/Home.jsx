@@ -32,7 +32,7 @@ function Home() {
   const handleDelete = async (blogId) => {
     const token = localStorage.getItem("token");
     try {
-      await axios.delete(`http://localhost:5000/api/posts/${blogId}`, {
+      await axios.delete(`https://blog-app-4j8r.onrender.com/api/posts/${blogId}`, {
         headers: { Authorization: `${token}` },
       });
       setBlogs(blogs.filter((blog) => blog._id !== blogId));
