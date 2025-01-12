@@ -4,7 +4,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const router = express.Router();
-const JWT_SECRET = 'Sudip10k89'; // Use the same key from authRoutes.js
+require('dotenv').config();
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY; // Use the same key from authRoutes.js
 
 // Middleware to verify token
 const verifyToken = (req, res, next) => {
@@ -12,7 +13,7 @@ const verifyToken = (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET_KEY);
     req.user = decoded;
     next();
   } catch (error) {
