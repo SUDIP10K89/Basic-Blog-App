@@ -11,7 +11,7 @@ function Home() {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/posts");
+        const response = await axios.get("https://blog-app-4j8r.onrender.com/api/posts");
         setBlogs(response.data);
       } catch (err) {
         setError("Failed to fetch blogs. Please try again later.");
