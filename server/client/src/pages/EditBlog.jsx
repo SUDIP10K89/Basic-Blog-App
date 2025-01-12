@@ -35,7 +35,7 @@ function EditBlog() {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:5000/api/posts/${id}`,
+        `https://blog-app-4j8r.onrender.com/api/posts/${id}`,
         { title, content },
         { headers: { Authorization: `${token}` } }
       );
