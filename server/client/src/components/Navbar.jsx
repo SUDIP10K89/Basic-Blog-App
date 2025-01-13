@@ -24,6 +24,14 @@ function Navbar() {
           </li>
           <li>
             <Link 
+              to="/myblog" 
+              className="hover:text-gray-300 transition duration-300 ease-in-out"
+            >
+              My Blog
+            </Link>
+          </li>
+          <li>
+            <Link 
               to="/add-post" 
               className="hover:text-gray-300 transition duration-300 ease-in-out"
             >
@@ -40,14 +48,14 @@ function Navbar() {
               Login
             </Link>
           </li>
-          <li>
+          {/* <li>
             <button 
               onClick={handleLogout}
               className="hover:text-gray-300 transition duration-300 ease-in-out"
             >
               Logout
             </button>
-          </li>
+          </li> */}
           
         </ul>
       </div>

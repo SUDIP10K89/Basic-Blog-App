@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { Link } from 'react-router-dom';
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -50,6 +51,17 @@ const Register = () => {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full p-3 rounded bg-gray-900 text-white border border-gray-600"
           />
+          <div>
+            <p>
+              Already have an account?{" "}
+            <Link 
+              to="/login" 
+              className="text-green-300 transition duration-300 ease-in-out"
+              >
+              Login
+            </Link>
+              </p>
+          </div>
           <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded"
@@ -57,7 +69,7 @@ const Register = () => {
             Register
           </button>
         </form>
-        {message && <p className="text-center text-red-400 mt-4">{message}</p>}
+        {message && <p className="text-center text-green-400 mt-4">{message}</p>}
       </div>
     </div>
   );

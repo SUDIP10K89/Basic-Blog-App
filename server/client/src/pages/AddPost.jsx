@@ -1,10 +1,13 @@
 import { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function AddPost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [message, setMessage] = useState("");
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,6 +28,7 @@ function AddPost() {
       setMessage(response.data.message);
       setTitle("");
       setContent("");
+      navigate("/");
     } catch (error) {
       console.log(error);
       setMessage("Failed to create blog post.");

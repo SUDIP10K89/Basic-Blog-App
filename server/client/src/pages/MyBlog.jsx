@@ -21,14 +21,30 @@ function Home() {
     fetchBlogs();
   }, []);
 
+  const handleEditClick = (blogId) => {
+    navigate(`/edit/${blogId}`);
+  };
   const handleShowFull = (blogId) => {
     navigate(`/show/${blogId}`);
   };
 
+  //To delete
+  const handleDelete = async (blogId) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.delete(`https://blog-app-4j8r.onrender.com/api/posts/${blogId}`, {
+        headers: { Authorization: `${token}` },
+      });
+      setBlogs(blogs.filter((blog) => blog._id !== blogId));
+    } catch (error) {
+      console.log("Failed to Delete", error);
+      setError("Failed to delete blog");
+    }
+  };
 
   return (
     <div className="bg-gray-700 min-h-screen text-white flex flex-col items-center py-8">
-      <h1 className="text-4xl font-bold mb-8">Blog Posts</h1>
+      <h1 className="text-4xl font-bold mb-8">Blog 3 Posts</h1>
       {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blogs.map((blog) => (
@@ -39,6 +55,18 @@ function Home() {
                 {blog.content.substring(0, 100)}...
               </p>
             </div>
+            <button
+              onClick={() => handleEditClick(blog._id)}
+              className="bg-green-500 text-gray-900 px-4 py-2 mx-3 rounded hover:bg-green-600"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(blog._id)}
+              className="bg-red-500 text-gray-900 px-4 py-2 rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>

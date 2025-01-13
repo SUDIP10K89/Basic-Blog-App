@@ -6,7 +6,7 @@ import Register from "./components/Register"
 import AddPost from "./pages/AddPost"
 import EditBlog from "./pages/EditBlog"
 import ShowFullBlog from "./pages/ShowFullBlog"
-
+import MyBlog from "./pages/MyBlog"
 
 function App(){
   return (
@@ -19,8 +19,8 @@ function App(){
           <Route path="/register" element={<Register/>} />
           <Route path="/add-post" element={<AddPost/>} />
           <Route path="/edit/:id" element={<EditBlog/>} />
-          <Route path="/show/:id" element={<ShowFullBlog/>} />
-          
+          <Route path="/show/:id" element={<ShowFullBlog/>} /> 
+          <Route path="/myblog" element={<MyBlog/>} />
         </Routes>
       </Router>
     </div>

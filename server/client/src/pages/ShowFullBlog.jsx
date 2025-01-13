@@ -25,7 +25,7 @@ function ShowFullBlog() {
         setTitle(response.data.title);
         setContent(response.data.content);
       } catch (err) {
-        setError("Failed to fetch blog. Please try again later.");
+        setError("Failed to fetch blog. Please login.");
       } finally {
         setLoading(false);
       }
@@ -42,6 +42,7 @@ function ShowFullBlog() {
         <>
           {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
           <div class="w-2/3 bg-gray-800 p-6 rounded-lg shadow-lg">
+          <p className="text-gray-600 mb-4" >Username</p>
             <h2 class="text-2xl font-bold mb-4">{title}</h2>
             <p class="text-gray-400 mb-4">
               {content}
