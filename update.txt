@@ -1,7 +1,6 @@
 Add these;
 
 Nice homepage
-register in login
-add my blog section where Usercan see only their post
-mongodb atlas from local
+Axios Baseurl
+Complete my blog page
 User Experience
