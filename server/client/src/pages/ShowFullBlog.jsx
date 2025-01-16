@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 
@@ -16,8 +16,8 @@ function ShowFullBlog() {
     const fetchBlog = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(
-          `https://blog-app-4j8r.onrender.com/api/posts/${id}`,
+        const response = await api.get(
+          `/api/posts/${id}`,
           {
             headers: { Authorization: `${token}` },
           }
@@ -35,22 +35,30 @@ function ShowFullBlog() {
   }, [id, token]);
 
   return (
-    <div className="bg-gray-700 min-h-screen text-white flex flex-col items-center py-8">
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
-          <div class="w-2/3 bg-gray-800 p-6 rounded-lg shadow-lg">
-          <p className="text-gray-600 mb-4" >Username</p>
-            <h2 class="text-2xl font-bold mb-4">{title}</h2>
-            <p class="text-gray-400 mb-4">
-              {content}
-            </p>
-          </div>
-        </>
+    <div className="bg-emerald-900/95 min-h-screen text-emerald-50 flex flex-col items-center py-12 px-4">
+  {loading ? (
+    <p className="text-emerald-300 text-lg font-medium animate-pulse">Loading...</p>
+  ) : (
+    <>
+      {error && (
+        <div className="w-full max-w-4xl mb-8 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+          <p className="text-red-400 text-lg font-semibold">{error}</p>
+        </div>
       )}
-    </div>
+      <div className="w-full max-w-3xl bg-emerald-800/40 p-6 rounded-xl shadow-lg border border-emerald-700/30 backdrop-blur-sm">
+        <p className="text-emerald-400 font-medium mb-2">Username</p>
+        <h2 className="text-2xl font-bold text-white mb-4 tracking-tight">
+          {title}
+        </h2>
+        <p className="text-emerald-100/80 text-base leading-relaxed">
+          {content}
+        </p>
+      </div>
+    </>
+  )}
+</div>
+
+
   );
 }
 
