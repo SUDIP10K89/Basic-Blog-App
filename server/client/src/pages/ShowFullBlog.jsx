@@ -50,8 +50,8 @@ function ShowFullBlog() {
         <h2 className="text-2xl font-bold text-white mb-4 tracking-tight">
           {title}
         </h2>
-        <p className="text-emerald-100/80 text-base leading-relaxed">
-          {content}
+        <p className="text-emerald-100/80 text-base leading-relaxed" >
+      {content}
         </p>
       </div>
     </>

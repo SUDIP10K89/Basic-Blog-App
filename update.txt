@@ -1,6 +1,6 @@
 Add these;
 
-Nice homepage
-Axios Baseurl
 Complete my blog page
 User Experience
+use react toast
+loading animation
