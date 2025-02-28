@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Editor, EditorState, RichUtils, convertToRaw, convertFromHTML, ContentState } from "draft-js";
+import { Editor, EditorState, RichUtils, convertToRaw, convertFromHTML, ContentState, Modifier } from "draft-js";
 import { stateToHTML } from "draft-js-export-html";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,12 @@ function AddPost() {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkSelection, setLinkSelection] = useState(null);
+  const [wordCount, setWordCount] = useState(0);
+  const [isToolbarSticky, setIsToolbarSticky] = useState(false);
+  const [showFormatTooltip, setShowFormatTooltip] = useState(false);
   const editorRef = useRef(null);
+  const toolbarRef = useRef(null);
+  const editorContainerRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -26,6 +31,88 @@ function AddPost() {
     }, 100);
   }, []);
 
+  // Update word count whenever editor content changes
+  useEffect(() => {
+    const contentState = editorState.getCurrentContent();
+    const text = contentState.getPlainText();
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    setWordCount(words);
+  }, [editorState]);
+
+  // Handle sticky toolbar on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (toolbarRef.current && editorContainerRef.current) {
+        const toolbarRect = toolbarRef.current.getBoundingClientRect();
+        const editorRect = editorContainerRef.current.getBoundingClientRect();
+        
+        if (toolbarRect.top <= 0 && editorRect.bottom > 0) {
+          setIsToolbarSticky(true);
+        } else {
+          setIsToolbarSticky(false);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-save functionality
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const content = editorState.getCurrentContent();
+      if (!content.hasText()) return;
+      
+      const htmlContent = stateToHTML(content);
+      localStorage.setItem('draftTitle', title);
+      localStorage.setItem('draftContent', htmlContent);
+      
+      // Show temporary save message
+      setMessage("Draft auto-saved");
+      setTimeout(() => setMessage(""), 1500);
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => clearInterval(autoSaveInterval);
+  }, [editorState, title]);
+
+  // Check for saved draft on load
+  useEffect(() => {
+    const savedTitle = localStorage.getItem('draftTitle');
+    const savedContent = localStorage.getItem('draftContent');
+    
+    if (savedTitle || savedContent) {
+      const shouldRestore = window.confirm("We found a saved draft. Would you like to restore it?");
+      
+      if (shouldRestore) {
+        if (savedTitle) setTitle(savedTitle);
+        
+        if (savedContent) {
+          const blocksFromHTML = convertFromHTML(savedContent);
+          const contentState = ContentState.createFromBlockArray(
+            blocksFromHTML.contentBlocks,
+            blocksFromHTML.entityMap
+          );
+          setEditorState(EditorState.createWithContent(contentState));
+        }
+      } else {
+        // Clear saved draft if user chooses not to restore
+        localStorage.removeItem('draftTitle');
+        localStorage.removeItem('draftContent');
+      }
+    }
+  }, []);
+
+  // Show format tooltip on text selection
+  useEffect(() => {
+    const selection = editorState.getSelection();
+    if (!selection.isCollapsed() && editorRef.current) {
+      setShowFormatTooltip(true);
+    } else {
+      setShowFormatTooltip(false);
+    }
+  }, [editorState]);
+
   const handleKeyCommand = (command, editorState) => {
     const newState = RichUtils.handleKeyCommand(editorState, command);
     if (newState) {
@@ -37,11 +124,23 @@ function AddPost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Form validation
+    if (title.trim() === '') {
+      setMessage("Please enter a title for your blog post");
+      return;
+    }
+    
+    const contentState = editorState.getCurrentContent();
+    if (!contentState.hasText()) {
+      setMessage("Please add some content to your blog post");
+      return;
+    }
+    
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
     
     // Convert the Draft.js content to HTML
-    const contentState = editorState.getCurrentContent();
     const htmlContent = stateToHTML(contentState);
     
     try {
@@ -58,6 +157,9 @@ function AddPost() {
         }
       );
       setMessage(response.data.message);
+      // Clear the saved draft after successful submission
+      localStorage.removeItem('draftTitle');
+      localStorage.removeItem('draftContent');
       setTitle("");
       setEditorState(EditorState.createEmpty());
       setTimeout(() => {
@@ -65,7 +167,7 @@ function AddPost() {
       }, 1000);
     } catch (error) {
       console.log(error);
-      setMessage("Failed to create blog post.");
+      setMessage(error.response?.data?.message || "Failed to create blog post.");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +186,19 @@ function AddPost() {
     if (!selection.isCollapsed()) {
       setLinkSelection(selection);
       setShowLinkInput(true);
+      
+      // Pre-fill link URL if text looks like a URL
+      const contentState = editorState.getCurrentContent();
+      const selectedText = contentState.getBlockForKey(selection.getStartKey())
+        .getText().slice(selection.getStartOffset(), selection.getEndOffset());
+      
+      if (selectedText.match(/^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?$/)) {
+        if (!selectedText.startsWith('http')) {
+          setLinkUrl(`https://${selectedText}`);
+        } else {
+          setLinkUrl(selectedText);
+        }
+      }
     } else {
       setMessage("Please select text to create a link.");
       setTimeout(() => setMessage(""), 3000);
@@ -118,6 +233,26 @@ function AddPost() {
     }
   };
 
+  const insertTemplate = (template) => {
+    const contentState = editorState.getCurrentContent();
+    const selection = editorState.getSelection();
+    
+    // Insert template text at current cursor position
+    const newContentState = Modifier.insertText(
+      contentState,
+      selection,
+      template
+    );
+    
+    const newEditorState = EditorState.push(
+      editorState,
+      newContentState,
+      'insert-characters'
+    );
+    
+    setEditorState(newEditorState);
+  };
+
   // Define styles for the content blocks
   const styleMap = {
     CODE: {
@@ -127,6 +262,9 @@ function AddPost() {
       padding: 2,
       borderRadius: 4,
     },
+    HIGHLIGHT: {
+      backgroundColor: 'rgba(255, 235, 59, 0.3)',
+    }
   };
 
   // Get the current block type
@@ -137,6 +275,22 @@ function AddPost() {
     const currentStyle = editorState.getCurrentInlineStyle();
     return currentStyle.has(style);
   };
+
+  // Templates for quick insertion
+  const templates = [
+    {
+      name: "Introduction",
+      text: "In this blog post, I'll discuss the important aspects of this topic and why you should care."
+    },
+    {
+      name: "Conclusion",
+      text: "To summarize the key points discussed in this article: "
+    },
+    {
+      name: "Call to Action",
+      text: "What do you think about this topic? Let me know in the comments below!"
+    }
+  ];
   
   return (
     <div className="bg-gradient-to-b from-emerald-900 to-teal-900 min-h-screen text-white flex items-center justify-center px-4 py-16">
@@ -148,7 +302,15 @@ function AddPost() {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
             <button 
-              onClick={() => navigate('/')}
+              onClick={() => {
+                if (editorState.getCurrentContent().hasText() || title) {
+                  if (window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                    navigate('/');
+                  }
+                } else {
+                  navigate('/');
+                }
+              }}
               className="flex items-center text-emerald-300 hover:text-emerald-200 transition-colors duration-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -183,14 +345,33 @@ function AddPost() {
             <div>
               <label className="block text-emerald-200 mb-2 font-medium">Content</label>
               
+              {/* Templates Quick Insert */}
+              <div className="mb-2 flex flex-wrap gap-2">
+                <span className="text-emerald-300 text-sm pt-2">Quick Insert:</span>
+                {templates.map((template, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => insertTemplate(template.text)}
+                    className="text-sm bg-emerald-800/70 hover:bg-emerald-700/80 px-3 py-2 rounded-md transition-colors"
+                  >
+                    {template.name}
+                  </button>
+                ))}
+              </div>
+              
               {/* Rich Text Toolbar */}
-              <div className="bg-emerald-800/70 rounded-t-lg border border-emerald-600/30 border-b-0 p-2 flex flex-wrap gap-1 md:gap-2">
+              <div 
+                ref={toolbarRef}
+                className={`bg-emerald-800/70 rounded-t-lg border border-emerald-600/30 border-b-0 p-2 flex flex-wrap gap-1 md:gap-2 transition-all duration-200 z-10
+                  ${isToolbarSticky ? 'sticky top-0 shadow-lg' : ''}`}
+              >
                 {/* Inline Style Controls */}
                 <button 
                   type="button" 
                   onClick={() => toggleInlineStyle('BOLD')}
                   className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('BOLD') ? 'bg-emerald-600' : ''}`}
-                  title="Bold"
+                  title="Bold (Ctrl+B)"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
@@ -201,7 +382,7 @@ function AddPost() {
                   type="button" 
                   onClick={() => toggleInlineStyle('ITALIC')}
                   className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('ITALIC') ? 'bg-emerald-600' : ''}`}
-                  title="Italic"
+                  title="Italic (Ctrl+I)"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="19" y1="4" x2="10" y2="4"></line>
@@ -213,7 +394,7 @@ function AddPost() {
                   type="button" 
                   onClick={() => toggleInlineStyle('UNDERLINE')}
                   className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('UNDERLINE') ? 'bg-emerald-600' : ''}`}
-                  title="Underline"
+                  title="Underline (Ctrl+U)"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path>
@@ -241,6 +422,16 @@ function AddPost() {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="16 18 22 12 16 6"></polyline>
                     <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => toggleInlineStyle('HIGHLIGHT')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('HIGHLIGHT') ? 'bg-emerald-600' : ''}`}
+                  title="Highlight"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                   </svg>
                 </button>
                 <div className="h-6 mx-1 my-auto w-px bg-emerald-600/50"></div>
@@ -330,6 +521,35 @@ function AddPost() {
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                   </svg>
                 </button>
+                
+                {/* Clear Formatting */}
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const selection = editorState.getSelection();
+                    if (!selection.isCollapsed()) {
+                      // Remove all inline styles from selection
+                      let newEditorState = editorState;
+                      ['BOLD', 'ITALIC', 'UNDERLINE', 'STRIKETHROUGH', 'CODE', 'HIGHLIGHT'].forEach(style => {
+                        newEditorState = RichUtils.toggleInlineStyle(newEditorState, style);
+                      });
+                      setEditorState(newEditorState);
+                    }
+                  }}
+                  className="p-2 rounded hover:bg-emerald-700 transition-colors"
+                  title="Clear Formatting"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l10 10-10 10-10-10 10-10z"/>
+                    <path d="M8.5 8.5l7 7"/>
+                    <path d="M15.5 8.5l-7 7"/>
+                  </svg>
+                </button>
+
+                {/* Word Count */}
+                <div className="ml-auto flex items-center text-xs text-emerald-300/80">
+                  <span>{wordCount} words</span>
+                </div>
               </div>
               
               {/* Link Input */}
@@ -354,76 +574,115 @@ function AddPost() {
                 </div>
               )}
               
-              {/* Draft.js Editor */}
-              <div 
-                className="w-full bg-emerald-900/50 text-white border border-emerald-600/30 
-                  focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20
-                  transition-colors rounded-b-lg min-h-[250px] overflow-hidden"
-              >
-                <div 
-                  className="p-4 min-h-[250px] max-h-[600px] overflow-y-auto" 
-                  onClick={() => editorRef.current?.focus()}
-                >
-                  <Editor
-                    editorState={editorState}
-                    onChange={setEditorState}
-                    handleKeyCommand={handleKeyCommand}
-                    customStyleMap={styleMap}
-                    ref={editorRef}
-                    placeholder="Write your blog content here..."
-                    spellCheck={true}
-                  />
-                </div>
-              </div>
-              <div className="text-xs text-emerald-400/60 mt-2 pl-2">
-                Tip: Select text to format it, or use keyboard shortcuts (Ctrl+B for bold, etc.)
-              </div>
-            </div>
+              {/* Format Tooltip */}
+              {showFormatTooltip && (
+                <div className="fixed z-20 bg-emerald-800 shadow-lg rounded-lg p-1 flex gap-1">
+                  <button 
+                    onClick={() => toggleInlineStyle('BOLD')}
+                    className={`p-1 rounded ${isStyleActive('BOLD') ? 'bg-emerald-600' : 'hover:bg-emerald-700'}`}
+                  >
+                    B
+                  </button>
+                  <button 
+                    onClick={() => toggleInlineStyle('ITALIC')}
+                    className={`p-1 rounded ${isStyleActive('ITALIC') ? 'bg-emerald-600' : 'hover:bg-emerald-700'}`}
+                  >
+                    I
+                    </button>
+<button 
+  onClick={() => toggleInlineStyle('UNDERLINE')}
+  className={`p-1 rounded ${isStyleActive('UNDERLINE') ? 'bg-emerald-600' : 'hover:bg-emerald-700'}`}
+>
+  U
+</button>
+<button 
+  onClick={() => toggleInlineStyle('STRIKETHROUGH')}
+  className={`p-1 rounded ${isStyleActive('STRIKETHROUGH') ? 'bg-emerald-600' : 'hover:bg-emerald-700'}`}
+>
+  S
+</button>
+<button 
+  onClick={onAddLink}
+  className={`p-1 rounded ${showLinkInput ? 'bg-emerald-600' : 'hover:bg-emerald-700'}`}
+>
+  🔗
+</button>
+</div>
+)}
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`flex items-center bg-gradient-to-r from-emerald-600 to-teal-600 
-                hover:from-emerald-500 hover:to-teal-500 text-white font-medium py-3 px-8 
-                rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 focus:outline-none 
-                focus:ring-2 focus:ring-emerald-400/50 focus:ring-offset-2 focus:ring-offset-emerald-800
-                text-lg ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Publishing...
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Publish Blog Post
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+{/* Editor */}
+<div 
+  ref={editorContainerRef} 
+  className="bg-emerald-900/50 rounded-b-lg border border-emerald-600/30 p-4 min-h-[300px] max-h-[600px] overflow-y-auto"
+  onClick={() => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  }}
+>
+  <Editor
+    ref={editorRef}
+    editorState={editorState}
+    onChange={setEditorState}
+    handleKeyCommand={handleKeyCommand}
+    customStyleMap={styleMap}
+    placeholder="Start writing your blog post..."
+    spellCheck={true}
+  />
+</div>
+</div>
 
-          {message && (
-            <div className="mt-6 text-center animate-fade-in">
-              <p className="text-emerald-200 bg-emerald-500/20 py-3 px-6 rounded-lg inline-block border border-emerald-500/30">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2 -mt-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                {message}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+{message && (
+  <div className="mt-2 text-sm text-emerald-300 animate-pulse">
+    {message}
+  </div>
+)}
+
+<div className="mt-8 flex justify-between items-center">
+  <button
+    type="button"
+    onClick={() => {
+      const shouldDiscard = window.confirm("Are you sure you want to discard this draft?");
+      if (shouldDiscard) {
+        localStorage.removeItem('draftTitle');
+        localStorage.removeItem('draftContent');
+        setTitle("");
+        setEditorState(EditorState.createEmpty());
+        setMessage("Draft discarded");
+        setTimeout(() => setMessage(""), 1500);
+      }
+    }}
+    className="px-5 py-3 bg-transparent hover:bg-emerald-800/50 text-emerald-300 border border-emerald-600/50 rounded-lg transition-colors duration-200"
+  >
+    Discard Draft
+  </button>
+  
+  <button
+    type="submit"
+    disabled={isSubmitting}
+    className={`px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg shadow-lg transition-all duration-200 ${
+      isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+    }`}
+  >
+    {isSubmitting ? (
+      <span className="flex items-center">
+        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Publishing...
+      </span>
+    ) : (
+      "Publish Post"
+    )}
+  </button>
+</div>
+
+</form>
+</div>
+</div>
+</div>
+);
 }
 
 export default AddPost;
