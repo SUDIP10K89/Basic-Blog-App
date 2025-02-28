@@ -11,7 +11,7 @@ function Home() {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await api.get("/api/posts");
+        const response = await api.get("/api/posts/my-blogs");
         setBlogs(response.data);
       } catch (err) {
         setError("Failed to fetch blogs. Please try again later.");

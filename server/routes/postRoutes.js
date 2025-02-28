@@ -49,6 +49,18 @@ router.get('/', async (req, res) => {
   }
 });
 
+//Get particular user blog post
+router.get("/my-blogs",verifyToken,async (req,res)=>{
+  try {
+    const userId = req.user.id;
+    const posts = await Post.find({author:userId}).populate('author', 'username email');
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+)
+
 // Update a post
 router.put('/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
