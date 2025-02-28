@@ -1,29 +1,55 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Editor, EditorState, RichUtils, convertToRaw, convertFromHTML, ContentState } from "draft-js";
+import { stateToHTML } from "draft-js-export-html";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import "draft-js/dist/Draft.css";
 
 function AddPost() {
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentFormat, setCurrentFormat] = useState(null);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
-  const contentEditableRef = useRef(null);
+  const [linkSelection, setLinkSelection] = useState(null);
+  const editorRef = useRef(null);
 
   const navigate = useNavigate();
+
+  // Focus the editor when the page loads
+  useEffect(() => {
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.focus();
+      }
+    }, 100);
+  }, []);
+
+  const handleKeyCommand = (command, editorState) => {
+    const newState = RichUtils.handleKeyCommand(editorState, command);
+    if (newState) {
+      setEditorState(newState);
+      return "handled";
+    }
+    return "not-handled";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
+    
+    // Convert the Draft.js content to HTML
+    const contentState = editorState.getCurrentContent();
+    const htmlContent = stateToHTML(contentState);
+    
     try {
       const response = await api.post(
         "/api/posts",
         {
           title,
-          content: contentEditableRef.current.innerHTML,
+          content: htmlContent,
         },
         {
           headers: {
@@ -33,9 +59,7 @@ function AddPost() {
       );
       setMessage(response.data.message);
       setTitle("");
-      if (contentEditableRef.current) {
-        contentEditableRef.current.innerHTML = "";
-      }
+      setEditorState(EditorState.createEmpty());
       setTimeout(() => {
         navigate("/");
       }, 1000);
@@ -47,20 +71,73 @@ function AddPost() {
     }
   };
 
-  const formatText = (command, value = null) => {
-    document.execCommand(command, false, value);
-    contentEditableRef.current.focus();
-    setCurrentFormat(command);
+  const toggleBlockType = (blockType) => {
+    setEditorState(RichUtils.toggleBlockType(editorState, blockType));
   };
 
-  const handleInsertLink = () => {
-    if (linkUrl) {
-      formatText("createLink", linkUrl);
-      setLinkUrl("");
-      setShowLinkInput(false);
+  const toggleInlineStyle = (inlineStyle) => {
+    setEditorState(RichUtils.toggleInlineStyle(editorState, inlineStyle));
+  };
+
+  const onAddLink = () => {
+    const selection = editorState.getSelection();
+    if (!selection.isCollapsed()) {
+      setLinkSelection(selection);
+      setShowLinkInput(true);
+    } else {
+      setMessage("Please select text to create a link.");
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
+  const confirmLink = () => {
+    if (linkUrl && linkSelection) {
+      const contentState = editorState.getCurrentContent();
+      const contentStateWithEntity = contentState.createEntity(
+        'LINK',
+        'MUTABLE',
+        { url: linkUrl }
+      );
+      const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+      
+      let newEditorState = EditorState.push(
+        editorState,
+        contentStateWithEntity,
+        'create-entity'
+      );
+      
+      newEditorState = RichUtils.toggleLink(
+        newEditorState,
+        linkSelection,
+        entityKey
+      );
+      
+      setEditorState(newEditorState);
+      setShowLinkInput(false);
+      setLinkUrl("");
+    }
+  };
+
+  // Define styles for the content blocks
+  const styleMap = {
+    CODE: {
+      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+      fontFamily: '"Inconsolata", "Menlo", "Consolas", monospace',
+      fontSize: 16,
+      padding: 2,
+      borderRadius: 4,
+    },
+  };
+
+  // Get the current block type
+  const currentBlockType = RichUtils.getCurrentBlockType(editorState);
+
+  // Check if a given inline style is currently active
+  const isStyleActive = (style) => {
+    const currentStyle = editorState.getCurrentInlineStyle();
+    return currentStyle.has(style);
+  };
+  
   return (
     <div className="bg-gradient-to-b from-emerald-900 to-teal-900 min-h-screen text-white flex items-center justify-center px-4 py-16">
       <div className="relative bg-gradient-to-br from-emerald-800/60 to-teal-800/60 p-8 rounded-xl shadow-2xl backdrop-blur-sm border border-emerald-700/30 w-full max-w-3xl">
@@ -104,14 +181,15 @@ function AddPost() {
             </div>
 
             <div>
-              <label htmlFor="content" className="block text-emerald-200 mb-2 font-medium">Content</label>
+              <label className="block text-emerald-200 mb-2 font-medium">Content</label>
               
               {/* Rich Text Toolbar */}
               <div className="bg-emerald-800/70 rounded-t-lg border border-emerald-600/30 border-b-0 p-2 flex flex-wrap gap-1 md:gap-2">
+                {/* Inline Style Controls */}
                 <button 
                   type="button" 
-                  onClick={() => formatText('bold')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'bold' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleInlineStyle('BOLD')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('BOLD') ? 'bg-emerald-600' : ''}`}
                   title="Bold"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -121,8 +199,8 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('italic')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'italic' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleInlineStyle('ITALIC')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('ITALIC') ? 'bg-emerald-600' : ''}`}
                   title="Italic"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -133,8 +211,8 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('underline')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'underline' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleInlineStyle('UNDERLINE')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('UNDERLINE') ? 'bg-emerald-600' : ''}`}
                   title="Underline"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -144,22 +222,34 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('strikeThrough')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'strikeThrough' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleInlineStyle('STRIKETHROUGH')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('STRIKETHROUGH') ? 'bg-emerald-600' : ''}`}
                   title="Strike Through"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="4" y1="12" x2="20" y2="12"></line>
-                    <path d="M16 6a4 4 0 0 0-8 0v6">
-                    </path><path d="M8 18a4 4 0 0 0 8 0">
-                    </path>
+                    <path d="M16 6a4 4 0 0 0-8 0v6"></path>
+                    <path d="M8 18a4 4 0 0 0 8 0"></path>
+                  </svg>
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => toggleInlineStyle('CODE')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${isStyleActive('CODE') ? 'bg-emerald-600' : ''}`}
+                  title="Code"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
                   </svg>
                 </button>
                 <div className="h-6 mx-1 my-auto w-px bg-emerald-600/50"></div>
+                
+                {/* Block Type Controls */}
                 <button 
                   type="button" 
-                  onClick={() => formatText('insertUnorderedList')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'insertUnorderedList' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleBlockType('unordered-list-item')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentBlockType === 'unordered-list-item' ? 'bg-emerald-600' : ''}`}
                   title="Bullet List"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -173,8 +263,8 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('insertOrderedList')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'insertOrderedList' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleBlockType('ordered-list-item')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentBlockType === 'ordered-list-item' ? 'bg-emerald-600' : ''}`}
                   title="Numbered List"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -188,8 +278,8 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('formatBlock', '<blockquote>')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentFormat === 'formatBlock' ? 'bg-emerald-600' : ''}`}
+                  onClick={() => toggleBlockType('blockquote')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentBlockType === 'blockquote' ? 'bg-emerald-600' : ''}`}
                   title="Quote"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -199,9 +289,9 @@ function AddPost() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => formatText('formatBlock', '<h2>')}
-                  className={`p-2 rounded hover:bg-emerald-700 transition-colors`}
-                  title="Heading"
+                  onClick={() => toggleBlockType('header-two')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentBlockType === 'header-two' ? 'bg-emerald-600' : ''}`}
+                  title="H2 Heading"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 12h8"></path>
@@ -211,26 +301,33 @@ function AddPost() {
                     <path d="M17 6v12"></path>
                   </svg>
                 </button>
-                <div className="h-6 mx-1 my-auto w-px bg-emerald-600/50"></div>
                 <button 
                   type="button" 
-                  onClick={() => setShowLinkInput(!showLinkInput)}
+                  onClick={() => toggleBlockType('header-three')}
+                  className={`p-2 rounded hover:bg-emerald-700 transition-colors ${currentBlockType === 'header-three' ? 'bg-emerald-600' : ''}`}
+                  title="H3 Heading"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12h8"></path>
+                    <path d="M4 18V6"></path>
+                    <path d="M12 18V6"></path>
+                    <path d="M17 12h3"></path>
+                    <path d="M17 6a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2"></path>
+                    <path d="M17 18a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2"></path>
+                  </svg>
+                </button>
+                <div className="h-6 mx-1 my-auto w-px bg-emerald-600/50"></div>
+                
+                {/* Link Controls */}
+                <button 
+                  type="button" 
+                  onClick={onAddLink}
                   className={`p-2 rounded hover:bg-emerald-700 transition-colors ${showLinkInput ? 'bg-emerald-600' : ''}`}
                   title="Insert Link"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                  </svg>
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => formatText('insertHorizontalRule')}
-                  className="p-2 rounded hover:bg-emerald-700 transition-colors"
-                  title="Horizontal Line"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
                 </button>
               </div>
@@ -249,7 +346,7 @@ function AddPost() {
                   />
                   <button
                     type="button"
-                    onClick={handleInsertLink}
+                    onClick={confirmLink}
                     className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-r-lg transition-colors"
                   >
                     Insert
@@ -257,19 +354,29 @@ function AddPost() {
                 </div>
               )}
               
-              {/* Rich Text Editor Area */}
-              <div
-                ref={contentEditableRef}
-                contentEditable
-                className="w-full p-4 rounded-b-lg bg-emerald-900/50 text-white 
-                border border-emerald-600/30 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20
-                focus:outline-none transition-colors min-h-[250px] max-h-[600px] overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: content }}
-                onInput={(e) => setContent(e.currentTarget.innerHTML)}
-                style={{ lineHeight: '1.5' }}
-              ></div>
+              {/* Draft.js Editor */}
+              <div 
+                className="w-full bg-emerald-900/50 text-white border border-emerald-600/30 
+                  focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20
+                  transition-colors rounded-b-lg min-h-[250px] overflow-hidden"
+              >
+                <div 
+                  className="p-4 min-h-[250px] max-h-[600px] overflow-y-auto" 
+                  onClick={() => editorRef.current?.focus()}
+                >
+                  <Editor
+                    editorState={editorState}
+                    onChange={setEditorState}
+                    handleKeyCommand={handleKeyCommand}
+                    customStyleMap={styleMap}
+                    ref={editorRef}
+                    placeholder="Write your blog content here..."
+                    spellCheck={true}
+                  />
+                </div>
+              </div>
               <div className="text-xs text-emerald-400/60 mt-2 pl-2">
-                Tip: You can paste formatted content or use the toolbar above to format your text
+                Tip: Select text to format it, or use keyboard shortcuts (Ctrl+B for bold, etc.)
               </div>
             </div>
 
@@ -305,7 +412,7 @@ function AddPost() {
 
           {message && (
             <div className="mt-6 text-center animate-fade-in">
-              <p claemerald-200 bg-emerald-500/20 py-3 px-6 rounded-lg inline-block border border-emerald-500/30">
+              <p className="text-emerald-200 bg-emerald-500/20 py-3 px-6 rounded-lg inline-block border border-emerald-500/30">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2 -mt-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
