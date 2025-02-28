@@ -7,14 +7,19 @@ function Home() {
   const [blogs, setBlogs] = useState([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await api.get("/api/posts/my-blogs");
+        const response = await api.get(`/api/posts/my-blogs`, {
+          headers: { Authorization: `${token}` },
+        });
         setBlogs(response.data);
       } catch (err) {
         setError("Failed to fetch blogs. Please try again later.");
+        console.log("Failed to fetch blogs", err);
       }
     };
 

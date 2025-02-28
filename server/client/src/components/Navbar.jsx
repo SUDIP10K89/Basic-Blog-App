@@ -17,7 +17,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-emerald-800 shadow-lg">
+    <nav className="bg-emerald-800 shadow-lg fixed top-0 w-full z-10">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* App Title */}
@@ -93,25 +93,28 @@ function Navbar() {
         <div className="md:hidden px-2 pt-2 pb-3 space-y-1">
           <Link 
             to="/" 
+            onClick={toggleMobileMenu}
             className="block px-3 py-2 text-emerald-100 hover:text-white font-medium transition-colors duration-200 ease-in-out"
           >
             Home
           </Link>
           <Link 
             to="/myblog" 
+            onClick={toggleMobileMenu}
             className="block px-3 py-2 text-emerald-100 hover:text-white font-medium transition-colors duration-200 ease-in-out"
           >
             My Blog
           </Link>
           <Link 
             to="/add-post" 
+            onClick={toggleMobileMenu}
             className="block px-3 py-2 text-emerald-100 hover:text-white font-medium transition-colors duration-200 ease-in-out"
           >
             Create
           </Link>
           {isLoggedIn ? (
             <button 
-              onClick={handleLogout}
+              onClick={() => { handleLogout(); toggleMobileMenu(); }}
               className="block w-full text-left px-3 py-2 text-emerald-100 hover:text-white font-medium transition-colors duration-200 ease-in-out"
             >
               Logout
@@ -119,6 +122,7 @@ function Navbar() {
           ) : (
             <Link 
               to="/login" 
+              onClick={toggleMobileMenu}
               className="block px-3 py-2 text-emerald-100 hover:text-white font-medium transition-colors duration-200 ease-in-out"
             >
               Login
