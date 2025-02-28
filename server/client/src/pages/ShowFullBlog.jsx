@@ -35,7 +35,7 @@ function ShowFullBlog() {
   }, [id, token]);
 
   return (
-    <div className="bg-emerald-900/95 min-h-screen text-emerald-50 flex flex-col items-center py-12 px-4">
+    <div className="pt-25 bg-emerald-900/95 min-h-screen text-emerald-50 flex flex-col items-center py-12 px-4">
   {loading ? (
     <p className="text-emerald-300 text-lg font-medium animate-pulse">Loading...</p>
   ) : (

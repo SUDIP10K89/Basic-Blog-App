@@ -27,7 +27,7 @@ function Home() {
 
 
   return (
-    <div className="bg-emerald-900/95 min-h-screen text-emerald-50 flex flex-col items-center py-12 px-4">
+    <div className="bg-emerald-900/95 min-h-screen text-emerald-50 flex flex-col items-center py-12 px-4 pt-25">
   <h1 className="text-4xl font-bold mb-12 tracking-tight">Blog Posts</h1>
   
   {error && (

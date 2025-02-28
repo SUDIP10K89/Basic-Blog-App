@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const api = axios.create({
-    baseURL:'https://blog-app-4j8r.onrender.com',
+    baseURL:'https://writeora.onrender.com',
     // baseURL:'http://localhost:5000',
 });
 

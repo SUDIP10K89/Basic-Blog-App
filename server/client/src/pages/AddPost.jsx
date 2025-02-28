@@ -36,7 +36,7 @@ function AddPost() {
   };
 
   return (
-    <div className="bg-emerald-900/95 min-h-screen text-white flex items-center justify-center px-4 py-16">
+    <div className="pt-25 bg-emerald-900/95 min-h-screen text-white flex items-center justify-center px-4 py-16">
  <div className="bg-emerald-800/40 p-8 rounded-xl shadow-xl backdrop-blur-sm border border-emerald-700/30 w-full max-w-2xl">
    <h1 className="text-3xl font-bold mb-8 text-center tracking-tight">
      Create New Blog Post
