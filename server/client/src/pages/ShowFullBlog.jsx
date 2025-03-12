@@ -25,9 +25,10 @@ function ShowFullBlog() {
         );
         setTitle(response.data.title);
         setContent(response.data.content);
-        // Set author if available in API response
-        if (response.data.author) setAuthor(response.data.author);
-        // Set date if available in API response
+
+         if (response.data.author) setAuthor(response.data.author);
+        console.log(response.data.author.username);
+        
         if (response.data.createdAt) {
           const date = new Date(response.data.createdAt);
           setCreatedAt(date.toLocaleDateString('en-US', { 
