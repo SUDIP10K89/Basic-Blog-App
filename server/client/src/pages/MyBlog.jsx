@@ -116,7 +116,7 @@ function Home() {
           <p className="text-xl text-emerald-200 mb-2">No blog posts yet</p>
           <p className="text-emerald-300/70">Start your writing journey by creating your first post!</p>
           <button 
-            onClick={() => navigate('/create')} 
+            onClick={() => navigate('/add-post')} 
             className="mt-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-emerald-400/30"
           >
             Create New Post

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import api from "../api";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,6 +23,7 @@ const Login = () => {
       const { token } = response.data;
       localStorage.setItem('token', token);
       setMessage(response.data.message);
+      navigate("/");
     } catch (error) {
       setMessage(error.response.data.message || "Invalid Credentials!");
     } finally {
@@ -30,7 +32,7 @@ const Login = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 min-h-screen flex items-center justify-center px-4 py-16">
+    <div className="overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 min-h-screen flex items-center justify-center px-4 py-16">
       <div className="relative bg-emerald-800/40 p-8 rounded-xl shadow-xl backdrop-blur-sm border border-emerald-700/30 text-white w-full max-w-md">
         {/* Decorative elements */}
         <div className="absolute -top-10 -left-10 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl"></div>
@@ -58,9 +60,9 @@ const Login = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-1">
               <label className="text-sm font-medium text-emerald-100">Password</label>
-              <Link to="/forgot-password" className="text-xs text-emerald-300 hover:text-emerald-200 transition-colors">
+              {/* <Link to="/forgot-password" className="text-xs text-emerald-300 hover:text-emerald-200 transition-colors">
                 Forgot Password?
-              </Link>
+              </Link> */}
             </div>
             <div className="relative">
               <input

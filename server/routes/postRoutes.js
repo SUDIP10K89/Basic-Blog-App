@@ -101,6 +101,19 @@ router.get("/:id",verifyToken,async (req,res)=>{
 
 })
 
+
+//Get a particular post
+router.get("/particular/:id",async (req,res) => { 
+  try {
+    const {id} = req.params;
+    const posts = await Post.findById(id).populate('author', 'username email');
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+    
+ })
+
 // Delete a post
 router.delete('/:id', verifyToken, async (req, res) => {
   const { id } = req.params;

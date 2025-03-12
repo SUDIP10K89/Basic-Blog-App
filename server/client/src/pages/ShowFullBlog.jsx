@@ -18,17 +18,13 @@ function ShowFullBlog() {
       setLoading(true);
       try {
         const response = await api.get(
-          `/api/posts/${id}`,
-          {
-            headers: { Authorization: `${token}` },
-          }
+          `/api/posts/particular/${id}`
         );
         setTitle(response.data.title);
         setContent(response.data.content);
 
-         if (response.data.author) setAuthor(response.data.author);
-        console.log(response.data.author.username);
-        
+        if (response.data.author) setAuthor(response.data.author.username);
+              
         if (response.data.createdAt) {
           const date = new Date(response.data.createdAt);
           setCreatedAt(date.toLocaleDateString('en-US', { 

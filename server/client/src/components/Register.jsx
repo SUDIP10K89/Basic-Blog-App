@@ -30,7 +30,7 @@ const Register = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 min-h-screen flex items-center justify-center px-4 py-16">
+    <div className=" overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 min-h-screen flex items-center justify-center px-4 py-16">
       <div className="relative bg-emerald-800/40 p-8 rounded-xl shadow-xl backdrop-blur-sm border border-emerald-700/30 text-white w-full max-w-md">
         {/* Decorative elements */}
         <div className="absolute -top-10 -left-10 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl"></div>
