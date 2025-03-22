@@ -19,12 +19,13 @@ function App(){
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/show/:id" element={<ShowFullBlog />} />
 
           {/* Protected Routes */}
           <Route element={<PrivateRoute />}>
             <Route path="/add-post" element={<AddPost />} />
             <Route path="/edit/:id" element={<EditBlog />} />
-            <Route path="/show/:id" element={<ShowFullBlog />} />
+            
             <Route path="/myblog" element={<MyBlog />} />
           </Route>
         </Routes>
