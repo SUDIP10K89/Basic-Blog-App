@@ -7,20 +7,26 @@ import AddPost from "./pages/AddPost"
 import EditBlog from "./pages/EditBlog"
 import ShowFullBlog from "./pages/ShowFullBlog"
 import MyBlog from "./pages/MyBlog"
+import PrivateRoute from "./components/PrivateRoute"
 
 function App(){
   return (
-    <div>
+     <div>
       <Router>
-       <Navbar/>
+        <Navbar />
         <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/login" element={<Login/>} />
-          <Route path="/register" element={<Register/>} />
-          <Route path="/add-post" element={<AddPost/>} />
-          <Route path="/edit/:id" element={<EditBlog/>} />
-          <Route path="/show/:id" element={<ShowFullBlog/>} /> 
-          <Route path="/myblog" element={<MyBlog/>} />
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected Routes */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/add-post" element={<AddPost />} />
+            <Route path="/edit/:id" element={<EditBlog />} />
+            <Route path="/show/:id" element={<ShowFullBlog />} />
+            <Route path="/myblog" element={<MyBlog />} />
+          </Route>
         </Routes>
       </Router>
     </div>
